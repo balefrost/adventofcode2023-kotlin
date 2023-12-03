@@ -1,0 +1,3 @@
+[submodule "src/main/resources/org/balefrost/aoc2023"]
+	path = src/main/resources/org/balefrost/aoc2023
+	url = git@github.com:balefrost/adventofcode2023-private.git
