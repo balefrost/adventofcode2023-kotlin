@@ -1,9 +1,11 @@
 package org.balefrost.aoc2023
 
-object Day01Part1 {
-    @JvmStatic
-    fun main(args: Array<String>) {
-        val lines = Day01Part1::class.java.getResource("Day01.txt")!!.readText().lines().filterNot { it.isEmpty() }
+import org.junit.jupiter.api.Test
+
+class Day01 {
+    @Test
+    fun part01() {
+        val lines = Day01::class.java.getResource("day01.txt")!!.readText().lines().filterNot { it.isEmpty() }
         val numbers = lines.map {line ->
             val digits = line.filter { it.isDigit() }
             val firstDigit = digits.first()
@@ -13,12 +15,10 @@ object Day01Part1 {
         val sum = numbers.sum()
         println(sum)
     }
-}
 
-object Day01Part2 {
-    @JvmStatic
-    fun main(args: Array<String>) {
-        val lines = Day01Part1::class.java.getResource("Day01.txt")!!.readText().lines().filterNot { it.isEmpty() }
+    @Test
+    fun part02() {
+        val lines = Day01::class.java.getResource("day01.txt")!!.readText().lines().filterNot { it.isEmpty() }
         val numberStrings = mapOf(
             "one" to 1,
             "two" to 2,

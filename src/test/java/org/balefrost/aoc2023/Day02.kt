@@ -1,9 +1,9 @@
 package org.balefrost.aoc2023
 
+import org.junit.jupiter.api.Test
 import kotlin.math.max
 
-object Day02Part1 {
-
+class Day02 {
     fun parse(lines: Iterable<String>): Map<Int, List<Map<String, Int>>> {
         val gameRegex = """Game (\d+): (.*)""".toRegex()
         return lines.associate { line ->
@@ -21,9 +21,10 @@ object Day02Part1 {
             gameNo to roundData
         }
     }
-    @JvmStatic
-    fun main(args: Array<String>) {
-        val lines = Day01Part1::class.java.getResource("day02.txt")!!.readText().lines().filterNot { it.isEmpty() }
+
+    @Test
+    fun part1() {
+        val lines = Day02::class.java.getResource("day02.txt")!!.readText().lines().filterNot { it.isEmpty() }
         val all = parse(lines)
 
         val target = mapOf(
@@ -41,13 +42,11 @@ object Day02Part1 {
 
         println(possible.map { it.key }.sum())
     }
-}
 
-object Day02Part2 {
-    @JvmStatic
-    fun main(args: Array<String>) {
-        val lines = Day01Part1::class.java.getResource("day02.txt")!!.readText().lines().filterNot { it.isEmpty() }
-        val all = Day02Part1.parse(lines)
+    @Test
+    fun part2() {
+        val lines = Day02::class.java.getResource("day02.txt")!!.readText().lines().filterNot { it.isEmpty() }
+        val all = parse(lines)
 
         val powers = all.map { (_, rounds) ->
             val maxs = mutableMapOf<String, Int>()
