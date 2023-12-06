@@ -17,8 +17,10 @@ class Day03 {
     """.trimIndent()
 
     val textFromFile = this::class.java.getResource("day03.txt")!!.readText()
+
 //    val inputText = sampleText
     val inputText = textFromFile
+
     val lines = inputText.lines().filterNot { it.isEmpty() }
 
     data class Point2D(val x: Int, val y: Int)
@@ -27,9 +29,10 @@ class Day03 {
         val y2 = y + h - 1
     }
 
+    val numberRegex = """\d+""".toRegex()
+
     @Test
     fun part01() {
-        val numberRegex = """\d+""".toRegex()
         val regions = lines.flatMapIndexed { y, line ->
             numberRegex.findAll(line).map {
                 Region2D(it.range.first, y, it.range.last - it.range.first + 1, 1) to it.value.toInt()
@@ -61,5 +64,32 @@ class Day03 {
 
     @Test
     fun part02() {
+        val regions = lines.flatMapIndexed { y, line ->
+            numberRegex.findAll(line).map {
+                Region2D(it.range.first, y, it.range.last - it.range.first + 1, 1) to it.value.toInt()
+            }
+        }
+        val gears = lines.flatMapIndexed { y, line ->
+            line.mapIndexedNotNull { x, ch ->
+                if (ch == '*') {
+                    Point2D(x, y)
+                } else {
+                    null
+                }
+            }
+        }.groupBy { it.y }
+
+        val gearToAdjacentPartNumbers = mutableMapOf<Point2D, MutableList<Int>>()
+        for ((range, value) in regions) {
+            for (i in (range.y - 1..range.y2 + 1)) {
+                for (gear in gears.getOrDefault(i, emptyList())) {
+                    if (gear.x >= range.x - 1 && gear.x <= range.x2 + 1) {
+                        gearToAdjacentPartNumbers.getOrPut(gear) { mutableListOf() } += value
+                    }
+                }
+            }
+        }
+
+        println(gearToAdjacentPartNumbers.values.filter { it.size == 2 }.sumOf { (a, b) -> a * b })
     }
 }
