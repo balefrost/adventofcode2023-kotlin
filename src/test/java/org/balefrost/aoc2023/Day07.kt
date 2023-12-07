@@ -22,54 +22,56 @@ class Day07 {
 
     val lineRegex = """(.{5}) (\d+)""".toRegex()
 
+    data class HandCategorization(val similarCardCounts: List<Int>, val numJokers: Int)
+
     sealed interface HandCategory {
         fun check(cards: List<Char>): Boolean
-        fun categorize(cards: List<Char>): List<Int> = cards.groupingBy { it }.eachCount().values.sortedDescending()
 
         data object FiveOfAKind : HandCategory {
             override fun check(cards: List<Char>): Boolean {
-                return categorize(cards).first() == 5
+                val (categorized, numJokers) = categorize(cards)
+                return categorized.take(1).sum() + numJokers == 5
             }
         }
 
         data object FourOfAKind : HandCategory {
             override fun check(cards: List<Char>): Boolean {
-                return categorize(cards).first() == 4
+                val (categorized, numJokers) = categorize(cards)
+                return categorized.take(1).sum() + numJokers == 4
             }
         }
 
         data object FullHouse : HandCategory {
             override fun check(cards: List<Char>): Boolean {
-                val categorized = categorize(cards)
-                return categorized[0] == 3 && categorized[1] == 2
+                val (categorized, numJokers) = categorize(cards)
+                return categorized.take(2).sum() + numJokers == 5
             }
         }
 
         data object ThreeOfAKind : HandCategory {
             override fun check(cards: List<Char>): Boolean {
-                val categorized = categorize(cards)
-                return categorized[0] == 3 && categorized[1] == 1
+                val (categorized, numJokers) = categorize(cards)
+                return categorized.take(1).sum() + numJokers == 3
             }
         }
 
         data object TwoPair : HandCategory {
             override fun check(cards: List<Char>): Boolean {
-                val categorized = categorize(cards)
-                return categorized[0] == 2 && categorized[1] == 2
+                val (categorized, numJokers) = categorize(cards)
+                return categorized.take(2).sum() + numJokers >= 4
             }
         }
 
         data object OnePair : HandCategory {
             override fun check(cards: List<Char>): Boolean {
-                val categorized = categorize(cards)
-                return categorized[0] == 2 && categorized[1] == 1
+                val (categorized, numJokers) = categorize(cards)
+                return categorized.take(1).sum() + numJokers >= 2
             }
         }
 
         data object HighCard : HandCategory {
             override fun check(cards: List<Char>): Boolean {
-                val categorized = categorize(cards)
-                return categorized[0] == 1
+                return true
             }
         }
     }
@@ -86,8 +88,14 @@ class Day07 {
         )
 
         val cardToStrength = listOf(
-            'A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'
+            'A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2', '?'
         ).mapIndexed { idx, i -> i to idx }.toMap()
+
+        fun categorize(cards: List<Char>): HandCategorization {
+            val cardCounts = cards.filter { it != '?' }.groupingBy { it }.eachCount().values.sortedDescending()
+            val numJokers = cards.count { it == '?' }
+            return HandCategorization(cardCounts, numJokers)
+        }
     }
 
     data class Hand(val cards: List<Char>, val bid: Int)
@@ -132,7 +140,15 @@ class Day07 {
         println(winnings)
     }
 
+    // 251565697 wrong
     @Test
     fun part02() {
+        val newHands = hands.map { (cards, bid) ->
+            Hand(cards.map { if (it == 'J') '?' else it }, bid)
+        }
+        val winnings = newHands.sortedWith(compareBy(::compareHands) { it.cards }).foldIndexed(0) { idx, acc, hand ->
+            acc + (idx + 1) * hand.bid
+        }
+        println(winnings)
     }
 }
