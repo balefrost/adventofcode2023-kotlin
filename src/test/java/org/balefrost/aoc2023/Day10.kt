@@ -148,7 +148,7 @@ class Day10 {
 
             var insideOrOutside = InsideOrOutside.Outside
             // When insideOrOutside is one of the "RidingLine" states, the character that started the sequence
-            var howStarted: Char = '!'
+            var howStarted = '!'
 
             for (part in sortedLoopParts) {
                 if (insideOrOutside == InsideOrOutside.Inside) {
