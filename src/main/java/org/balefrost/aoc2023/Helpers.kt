@@ -24,3 +24,30 @@ fun CharSequence.suffixesLongToShort() = sequence {
     }
 }
 
+data class RunInfo<K, T>(val key: K, val values: List<T>)
+
+fun <K, T> Sequence<T>.groupRunsBy(fn: (T) -> K): Sequence<RunInfo<K, T>> {
+    return sequence {
+        val iter = iterator()
+        if (iter.hasNext()) {
+            var v = iter.next()
+            var currentKey = fn(v)
+            var run = mutableListOf(v)
+            while (iter.hasNext()) {
+                v = iter.next()
+                val k = fn(v)
+                if (k == currentKey) {
+                    run += v
+                } else {
+                    yield(RunInfo(currentKey, run))
+                    currentKey = k
+                    run = mutableListOf(v)
+                }
+            }
+            if (run.isNotEmpty()) {
+                yield(RunInfo(currentKey, run))
+            }
+        }
+    }
+}
+
