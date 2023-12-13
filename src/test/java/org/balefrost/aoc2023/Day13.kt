@@ -36,57 +36,58 @@ class Day13 {
         }
     }
 
-    fun checkForReflectionAt(lines: List<List<Char>>, startOfRefl: Int): Boolean {
+    data class UnmatchedLines(val a: List<Char>, val b: List<Char>, val ai: Int, val bi: Int)
+
+    fun checkForReflectionAt(lines: List<List<Char>>, startOfRefl: Int): List<UnmatchedLines> {
         var ai = startOfRefl - 1
         var bi = startOfRefl
+        val result = mutableListOf<UnmatchedLines>()
         while (ai >= 0 && bi < lines.size) {
             if (lines[ai] != lines[bi]) {
-                return false
+                result += UnmatchedLines(lines[ai], lines[bi], ai, bi)
             }
             --ai
             ++bi
         }
-        return true
+        return result
     }
 
     enum class ReflectionDir {
-        Horizontal,
-        Vertical
+        Vertical,
+        Horizontal
     }
 
     data class ReflectionResult(val dir: ReflectionDir, val countBefore: Int)
 
-    fun checkForReflection(lines: List<List<Char>>): ReflectionResult {
+    fun checkForReflection(lines: List<List<Char>>, pred: (List<UnmatchedLines>) -> Boolean): List<ReflectionResult> {
+
+        fun checkForReflectionsInDir(elems: List<List<Char>>): List<Int> {
+            return (1..elems.lastIndex).filter { idx ->
+                pred(checkForReflectionAt(elems, idx))
+            }
+        }
+
         // indices of the start of the second part of a reflection
-        val potentialHorizReflections =
-            lines.withIndex().zipWithNext().filter { (a, b) -> a.value == b.value }.map { (_, b) -> b.index }
-        val horizReflections = potentialHorizReflections.filter { idx ->
-            checkForReflectionAt(lines, idx)
+        val vertReflections = checkForReflectionsInDir(lines).map {
+            ReflectionResult(ReflectionDir.Vertical, it)
         }
 
-        val cols = transposeMatrix(lines)
-        val potentialVertReflections =
-            cols.withIndex().zipWithNext().filter { (a, b) -> a.value == b.value }.map { (_, b) -> b.index }
-        val vertReflections = potentialVertReflections.filter { idx ->
-            checkForReflectionAt(cols, idx)
+        val horizReflections = checkForReflectionsInDir(transposeMatrix(lines)).map {
+            ReflectionResult(ReflectionDir.Horizontal, it)
         }
 
-        check(horizReflections.size + vertReflections.size == 1)
-
-        if (horizReflections.isNotEmpty()) {
-            return ReflectionResult(ReflectionDir.Horizontal, horizReflections.first())
-        } else {
-            return ReflectionResult(ReflectionDir.Vertical, vertReflections.first())
-        }
+        return horizReflections + vertReflections
     }
 
     @Test
     fun part01() {
         val result = input.map {
-            val info = checkForReflection(it.map { it.toList() })
-            when (info.dir) {
-                ReflectionDir.Vertical -> info.countBefore
-                ReflectionDir.Horizontal -> 100 * info.countBefore
+            val reflections = checkForReflection(it.map { it.toList() }) { unmatched -> unmatched.isEmpty() }
+            check(reflections.size == 1)
+            val refl = reflections.first()
+            when (refl.dir) {
+                ReflectionDir.Horizontal -> refl.countBefore
+                ReflectionDir.Vertical -> 100 * refl.countBefore
             }
         }.sum()
 
@@ -95,6 +96,19 @@ class Day13 {
 
     @Test
     fun part02() {
+        val result = input.map {
+            val reflections = checkForReflection(it.map { it.toList() }) { unmatched ->
+                unmatched.size == 1 && unmatched.first().a.zip(unmatched.first().b).count { (a, b) -> a != b } == 1
+            }
+            check(reflections.size == 1)
+            val refl = reflections.first()
+            when (refl.dir) {
+                ReflectionDir.Horizontal -> refl.countBefore
+                ReflectionDir.Vertical -> 100 * refl.countBefore
+            }
+        }.sum()
+
+        println(result)
     }
 
 }
