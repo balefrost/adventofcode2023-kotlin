@@ -51,3 +51,30 @@ fun <K, T> Sequence<T>.groupRunsBy(fn: (T) -> K): Sequence<RunInfo<K, T>> {
     }
 }
 
+data class RunLength<T>(val item: T, val length: Int)
+
+fun <T> Sequence<T>.runLengths(): Sequence<RunLength<T>> {
+    val s = this
+    return sequence {
+        val iter = s.iterator()
+        if (iter.hasNext()) {
+            var count = 1
+            var item = iter.next()
+
+            while (iter.hasNext()) {
+                val newItem = iter.next()
+                if (newItem == item) {
+                    count += 1
+                } else {
+                    yield(RunLength(item, count))
+                    item = newItem
+                    count = 1
+                }
+            }
+            yield(RunLength(item, count))
+        }
+    }
+}
+
+
+
