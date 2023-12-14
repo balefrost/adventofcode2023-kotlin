@@ -14,7 +14,7 @@ class Day12 {
 
     val textFromFile = this::class.java.getResource("day12.txt")!!.readText()
 
-//        val inputText = sampleText
+//    val inputText = sampleText
     val inputText = textFromFile
 
     val lines = inputText.lines().dropLastWhile { it.isEmpty() }
@@ -26,60 +26,61 @@ class Day12 {
         Line(springs, runs.split(',').map { it.toInt() })
     }
 
-    fun <T, K> Iterable<T>.groupRunsBy(fn: (T) -> K): List<Pair<K, List<T>>> {
-        val result = mutableListOf<Pair<K, List<T>>>()
-        val iter = iterator()
-        if (iter.hasNext()) {
-            var v = iter.next()
-            var currentKey = fn(v)
-            var run = mutableListOf(v)
-            while (iter.hasNext()) {
-                v = iter.next()
-                val k = fn(v)
-                if (k == currentKey) {
-                    run += v
+    data class CacheKey(val springs: List<Char>, val runs: List<Int>)
+
+    fun countSolutions(cache: MutableMap<CacheKey, Long>, springs: List<Char>, runs: List<Int>): Long {
+        fun helper(depth: Int, springs: List<Char>, runs: List<Int>): Long {
+            val existing = cache[CacheKey(springs, runs)]
+            if (existing != null) {
+                return existing
+            }
+            fun checkRange(range: IntRange, target: Char): Boolean {
+                return range.all { springs[it] == '?' || springs[it] == target }
+            }
+
+            if (runs.isEmpty()) {
+                if (checkRange(springs.indices, '.')) {
+                    return 1
                 } else {
-                    result += currentKey to run
-                    currentKey = k
-                    run = mutableListOf(v)
+                    return 0
                 }
             }
-            if (run.isNotEmpty()) {
-                result += currentKey to run
+            val minNeeded = runs.sum() + runs.size - 1
+            val slack = springs.size - minNeeded
+            var count = 0L
+            for (i in 0 .. slack) {
+                val j = i + runs.first()
+                val k = j + 1
+                if (!checkRange(0 until i, '.')) {
+                    continue
+                }
+                if (!checkRange(i until j, '#')) {
+                    continue
+                }
+                val substringIndex: Int
+                if (j < springs.size) {
+                    if (!checkRange(j until k, '.')) {
+                        continue
+                    }
+                    substringIndex = k
+                } else {
+                    substringIndex = j
+                }
+                count += helper(depth + 1, springs.subList(substringIndex, springs.size), runs.subList(1, runs.size))
             }
-        }
-        return result
-    }
 
-    fun checkSolution(solution: Iterable<Char>, runs: List<Int>): Boolean {
-        val solutionPattern = solution.groupRunsBy { it }.filter { it.first == '#' }.map { it.second.size }
-        return solutionPattern == runs
+            cache[CacheKey(springs, runs)] = count
+            return count
+        }
+
+        return helper(0, springs, runs)
     }
 
     @Test
     fun part01() {
+        val cache = mutableMapOf<CacheKey, Long>()
         val totalSolutions = input.map { line ->
-            val unknownIndices = line.springs.mapIndexedNotNull { i, ch ->
-                when (ch) {
-                    '?' -> i
-                    else -> null
-                }
-            }.asReversed()
-
-            val solutions = (0 until Math.pow(2.0, unknownIndices.size.toDouble()).toInt()).map { i ->
-                val replacement = line.springs.toMutableList()
-                var bits = i
-                for (bitIdx in unknownIndices.indices) {
-                    replacement[unknownIndices[bitIdx]] = when (bits and 0x01) {
-                        0 -> '#'
-                        else -> '.'
-                    }
-                    bits = bits shr 1
-                }
-                checkSolution(replacement, line.runs)
-            }.count { it }
-
-            solutions
+            countSolutions(cache, line.springs.toList(), line.runs)
         }.sum()
 
         println(totalSolutions)
@@ -87,6 +88,17 @@ class Day12 {
 
     @Test
     fun part02() {
+        val longInput = input.map { line ->
+            Line(
+                (0..4).map { line.springs }.joinToString("?"),
+                (0..4).flatMap { line.runs })
+        }
+        val cache = mutableMapOf<CacheKey, Long>()
+        val totalSolutions = longInput.map { line ->
+            countSolutions(cache, line.springs.toList(), line.runs)
+        }.sum()
+
+        println(totalSolutions)
     }
 
 }
