@@ -32,28 +32,6 @@ class Day14 {
         val dir: Dir2D get() = Dir2D(dx, dy)
     }
 
-    data class Point2D(val x: Int, val y: Int) {
-        operator fun plus(dir: Dir2D): Point2D {
-            return Point2D(x + dir.dx, y + dir.dy)
-        }
-
-        operator fun minus(dir: Dir2D): Point2D {
-            return Point2D(x - dir.dx, y - dir.dy)
-        }
-    }
-
-    data class Dir2D(val dx: Int, val dy: Int) {
-        operator fun plus(pt: Point2D): Point2D {
-            return pt + this
-        }
-    }
-
-    data class Region2D(val x: Int, val y: Int, val w: Int, val h: Int) {
-        operator fun contains(pt: Point2D): Boolean {
-            return pt.x >= x && pt.x < x + w && pt.y >= y && pt.y < y + h
-        }
-    }
-
     fun iterationOrder(w: Int, h: Int, dir: Direction): Sequence<Point2D> {
         return when(dir) {
             Direction.North -> sequence {

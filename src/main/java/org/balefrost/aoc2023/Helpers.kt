@@ -76,5 +76,32 @@ fun <T> Sequence<T>.runLengths(): Sequence<RunLength<T>> {
     }
 }
 
+data class Point2D(val x: Int, val y: Int) {
+    operator fun plus(dir: Dir2D): Point2D {
+        return Point2D(x + dir.dx, y + dir.dy)
+    }
 
+    operator fun minus(dir: Dir2D): Point2D {
+        return Point2D(x - dir.dx, y - dir.dy)
+    }
+}
 
+data class Dir2D(val dx: Int, val dy: Int) {
+    operator fun plus(pt: Point2D): Point2D {
+        return pt + this
+    }
+
+    fun rotateLeft(): Dir2D {
+        return Dir2D(dy, -dx)
+    }
+
+    fun rotateRight(): Dir2D {
+        return Dir2D(-dy, dx)
+    }
+}
+
+data class Region2D(val x: Int, val y: Int, val w: Int, val h: Int) {
+    operator fun contains(pt: Point2D): Boolean {
+        return pt.x >= x && pt.x < x + w && pt.y >= y && pt.y < y + h
+    }
+}
