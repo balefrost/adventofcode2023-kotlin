@@ -1,5 +1,7 @@
 package org.balefrost.aoc2023
 
+import java.util.*
+
 fun CharSequence.prefixesShortToLong() = sequence {
     for (i in 0..this@prefixesShortToLong.length) {
         yield(this@prefixesShortToLong.substring(0, i))
@@ -98,10 +100,61 @@ data class Dir2D(val dx: Int, val dy: Int) {
     fun rotateRight(): Dir2D {
         return Dir2D(-dy, dx)
     }
+
+    operator fun unaryMinus(): Dir2D {
+        return Dir2D(-dx, -dy)
+    }
 }
 
 data class Region2D(val x: Int, val y: Int, val w: Int, val h: Int) {
     operator fun contains(pt: Point2D): Boolean {
         return pt.x >= x && pt.x < x + w && pt.y >= y && pt.y < y + h
     }
+}
+
+fun <K, V : Comparable<V>> dijkstra(
+    initialKeysAndScores: Iterable<Pair<K, V>>,
+    getAdjacent: (K) -> Iterable<K>,
+    getTentativeScore: (V, K) -> V,
+    isEndState: (K) -> Boolean
+): Pair<V, List<K>>? {
+    data class ResultEntry(val score: V, val previous: K?)
+
+    val results = mutableMapOf<K, ResultEntry>()
+    val toProcess = PriorityQueue<K>(compareBy { results.getValue(it).score })
+    for ((key, score) in initialKeysAndScores) {
+        results[key] = ResultEntry(score, null)
+        toProcess += key
+    }
+    val completed = mutableSetOf<K>()
+
+    while (toProcess.isNotEmpty()) {
+        val key = toProcess.remove()
+        if (isEndState(key)) {
+            val path = generateSequence(key) { results.getValue(it).previous }.toList().asReversed()
+            val finalScore = results.getValue(key).score
+            return finalScore to path
+        }
+        val adjacent = getAdjacent(key)
+        for (adj in adjacent) {
+            if (adj in completed) {
+                continue
+            }
+            val candidateScore = getTentativeScore(results.getValue(key).score, adj)
+            val candidate = ResultEntry(candidateScore, key)
+            var added = false
+            results.compute(adj) { _, existing ->
+                if (existing != null && existing.score <= candidateScore) {
+                    existing
+                } else {
+                    added = true
+                    candidate
+                }
+            }
+            if (added) {
+                toProcess.add(adj)
+            }
+        }
+    }
+    return null
 }
