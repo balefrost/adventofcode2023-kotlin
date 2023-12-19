@@ -1,6 +1,7 @@
 package org.balefrost.aoc2023
 
 import org.junit.jupiter.api.Test
+import kotlin.math.max
 
 class Day19 {
     val sampleText = """
@@ -25,16 +26,44 @@ class Day19 {
 
     val textFromFile = this::class.java.getResource("day19.txt")!!.readText()
 
-//    val inputText = sampleText
+    //    val inputText = sampleText
     val inputText = textFromFile
 
     val lines = inputText.lines().dropLastWhile { it.isEmpty() }
 
-    data class Rule(val next: String, val pred: (Map<String, Int>) -> Boolean)
+    data class Condition(val k: String, val comparison: Char, val target: Int) {
+        fun test(part: Map<String, Int>): Boolean {
+            val v = part.getValue(k)
+            return when (comparison) {
+                '<' -> v < target
+                '>' -> v > target
+                else -> error("Invalid comparison $comparison")
+            }
+        }
+
+        override fun toString(): String {
+            return "$k$comparison$target"
+        }
+
+        fun complement(): Condition {
+            return when (comparison) {
+                '<' -> Condition(k, '>', target - 1)
+                '>' -> Condition(k, '<', target + 1)
+                else -> error("Invalid comparison $comparison")
+            }
+        }
+    }
+
+    data class Rule(val cond: Condition?, val next: String) {
+        fun test(part: Map<String, Int>): Boolean {
+            return cond?.test(part) ?: true
+        }
+    }
+
     data class Workflow(val name: String, val rules: List<Rule>) {
         fun run(part: Map<String, Int>): String {
             for (rule in rules) {
-                if (rule.pred(part)) {
+                if (rule.test(part)) {
                     return rule.next
                 }
             }
@@ -50,19 +79,12 @@ class Day19 {
         val rules = parts.asSequence().drop(1).map { str ->
             val match = ruleRegex.matchEntire(str)
             if (match == null) {
-                Rule(str){true}
+                Rule(null, str)
             } else {
                 val (_, k, condition, target, next) = match.groupValues
                 val c = condition[0]
                 val t = target.toInt()
-                Rule(next){ m ->
-                    val v = m.getValue(k)
-                    when(c) {
-                        '<' -> v < t
-                        '>' -> v > t
-                        else -> error("Invalid condition $condition")
-                    }
-                }
+                Rule(Condition(k, c, t), next)
             }
         }.toList()
         Workflow(workflowName, rules)
@@ -78,7 +100,9 @@ class Day19 {
     @Test
     fun part01() {
         val result = parts.filter { part ->
-            val steps = generateSequence("in") { if (it in setOf("A", "R")) null else workflows.getValue(it).run(part) }.toList()
+            val steps = generateSequence("in") {
+                if (it in setOf("A", "R")) null else workflows.getValue(it).run(part)
+            }.toList()
             val final = steps.last()
             final == "A"
         }.map { it.values.sum() }.sum()
@@ -87,6 +111,60 @@ class Day19 {
 
     @Test
     fun part02() {
+
+        data class WorkflowWithConditions(val workflow: String, val conditions: List<Condition>)
+
+        fun generateAccepting(): Sequence<List<WorkflowWithConditions>> {
+            return sequence {
+                suspend fun SequenceScope<List<WorkflowWithConditions>>.helper(
+                    soFar: List<WorkflowWithConditions>,
+                    wf: String
+                ) {
+                    if (wf == "R") {
+                        return
+                    }
+                    if (wf == "A") {
+                        yield(soFar)
+                        return
+                    }
+                    val workflow = workflows.getValue(wf)
+                    var conditionList = emptyList<Condition>()
+                    for (rule in workflow.rules) {
+                        val cond = rule.cond
+                        if (cond == null) {
+                            helper(soFar + WorkflowWithConditions(wf, conditionList), rule.next)
+                        } else {
+                            helper(soFar + WorkflowWithConditions(wf, conditionList + cond), rule.next)
+                            conditionList = conditionList + cond.complement()
+                        }
+                    }
+                }
+
+                helper(emptyList(), "in")
+            }
+        }
+
+        val accepting = generateAccepting()
+
+        val acceptingRanges = accepting.map { steps ->
+            val ranges = "xmas".associate { it.toString() to IntRange(1, 4000) }.toMutableMap()
+            for (cond in steps.flatMap { it.conditions }) {
+                val existingRange = ranges.getValue(cond.k)
+                val newRange = when (cond.comparison) {
+                    '<' -> existingRange.updateLast(cond.target - 1)
+                    '>' -> existingRange.updateFirst(cond.target + 1)
+                    else -> error("bad cond")
+                }
+                ranges[cond.k] = newRange
+            }
+            ranges
+        }
+
+        val result = acceptingRanges.map { ranges ->
+            ranges.values.map { max(0L, it.last.toLong() - it.first + 1) }.reduce { a, b -> a * b }
+        }.sum()
+
+        println(result)
     }
 
 }

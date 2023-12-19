@@ -174,3 +174,6 @@ fun <K, V : Comparable<V>> dijkstra(
     }
     return null
 }
+
+fun IntRange.updateFirst(newFirst: Int): IntRange = IntRange(newFirst, this.last)
+fun IntRange.updateLast(newLast: Int): IntRange = IntRange(this.first, newLast)
