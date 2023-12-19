@@ -86,6 +86,10 @@ data class Point2D(val x: Int, val y: Int) {
     operator fun minus(dir: Dir2D): Point2D {
         return Point2D(x - dir.dx, y - dir.dy)
     }
+
+    override fun toString(): String {
+        return "($x, $y)"
+    }
 }
 
 data class Dir2D(val dx: Int, val dy: Int) {
@@ -103,6 +107,18 @@ data class Dir2D(val dx: Int, val dy: Int) {
 
     operator fun unaryMinus(): Dir2D {
         return Dir2D(-dx, -dy)
+    }
+
+    operator fun times(factor: Int): Dir2D {
+        return Dir2D(dx * factor, dy * factor)
+    }
+
+    val isHorizontal: Boolean get() = dy == 0
+
+    val isVertical: Boolean get() = dx == 0
+
+    override fun toString(): String {
+        return "<$dx, $dy>"
     }
 }
 
