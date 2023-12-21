@@ -1,6 +1,7 @@
 package org.balefrost.aoc2023
 
 import java.util.*
+import kotlin.math.min
 
 fun CharSequence.prefixesShortToLong() = sequence {
     for (i in 0..this@prefixesShortToLong.length) {
@@ -179,3 +180,127 @@ fun IntRange.updateFirst(newFirst: Int): IntRange = IntRange(newFirst, this.last
 fun IntRange.updateLast(newLast: Int): IntRange = IntRange(this.first, newLast)
 
 fun IntRange.shift(delta: Int): IntRange = IntRange(first + delta, last + delta)
+
+fun stronglyConnectedComponents(numItems: Int, adjacency: Map<Int, Iterable<Int>>): Sequence<Set<Int>> {
+    return sequence {
+        var nextIndex = 0
+        val itemIndex = IntArray(numItems) { -1 }
+        val itemLowLink = IntArray(numItems) { -1 }
+        val itemOnStack = BooleanArray(numItems) { false }
+        val potentialRoots = Stack<Int>()
+
+        suspend fun SequenceScope<Set<Int>>.strongConnect(v: Int) {
+            itemIndex[v] = nextIndex
+            itemLowLink[v] = nextIndex
+            ++nextIndex
+            potentialRoots.push(v)
+            itemOnStack[v] = true
+
+            for (adj in adjacency.getValue(v)) {
+                if (itemIndex[adj] == -1) {
+                    strongConnect(adj)
+                    itemLowLink[v] = min(itemLowLink[v], itemLowLink[adj])
+                } else if (itemOnStack[adj]) {
+                    itemLowLink[v] = min(itemLowLink[v], itemIndex[adj])
+                }
+            }
+
+            if (itemLowLink[v] == itemIndex[v]) {
+                val s = mutableSetOf<Int>()
+                while (true) {
+                    val item = potentialRoots.pop()
+                    itemOnStack[item] = false
+                    s += item
+                    if (item == v) {
+                        break
+                    }
+                }
+                yield(s)
+            }
+        }
+
+        repeat(numItems) { v ->
+            if (itemIndex[v] == -1) {
+                strongConnect(v)
+            }
+        }
+    }
+}
+
+fun <T> stronglyConnectedComponents(items: Iterable<T>, getAdjacent: (T) -> Iterable<T>): Sequence<Set<T>> {
+    val itemToInt = mutableMapOf<T, Int>()
+    val intToItem = mutableListOf<T>()
+
+    for (item in items) {
+        itemToInt[item] = intToItem.size
+        intToItem += item
+    }
+
+    val adjacencyMap = mutableMapOf<Int, List<Int>>()
+    for (item in items) {
+        val k = itemToInt.getValue(item)
+        val vs = getAdjacent(item).map(itemToInt::getValue)
+        adjacencyMap[k] = vs
+    }
+
+    return stronglyConnectedComponents(itemToInt.size, adjacencyMap).map { ii ->
+        ii.mapTo(mutableSetOf(), intToItem::get)
+    }
+}
+
+data class CycleInfo<T>(
+    val prefix: List<T>,
+    val cycle: List<T>
+) {
+    val items: Iterable<T> get() = sequence {
+        for (item in prefix) {
+            yield(item)
+        }
+        for (item in cycle) {
+            yield(item)
+        }
+    }.asIterable()
+
+    operator fun get(idx: Int): T = when {
+        idx < prefix.size -> prefix[idx]
+        cycle.isEmpty() -> throw NoSuchElementException()
+        else -> cycle[(idx - prefix.size).rem(cycle.size)]
+    }
+}
+
+fun <T> Iterable<T>.findCycle(): CycleInfo<T> {
+    val stateToIndex = mutableMapOf<T, Int>()
+    val seen = mutableListOf<T>()
+    for (item in this) {
+        val existingIndex = stateToIndex.putIfAbsent(item, seen.size)
+        if (existingIndex == null) {
+            seen += item
+        } else {
+            return CycleInfo(seen.subList(0, existingIndex), seen.subList(existingIndex, seen.size))
+        }
+    }
+    return CycleInfo(seen, emptyList())
+}
+
+fun <T> Sequence<T>.findCycle(): CycleInfo<T> = asIterable().findCycle()
+
+fun gcd(a: Long, b: Long): Long {
+    var aa = a
+    var bb = b
+    while (bb != 0L) {
+        val t = bb
+        bb = aa.rem(bb)
+        aa = t
+    }
+    return aa
+}
+
+fun lcm(a: Int, b: Int): Int {
+    val ll = gcd(a.toLong(), b.toLong())
+    return a / ll.toInt() * b
+}
+
+fun lcm(a: Long, b: Long): Long {
+    val ll = gcd(a, b)
+    return a / ll * b
+}
