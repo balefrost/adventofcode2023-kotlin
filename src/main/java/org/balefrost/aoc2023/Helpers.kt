@@ -177,3 +177,5 @@ fun <K, V : Comparable<V>> dijkstra(
 
 fun IntRange.updateFirst(newFirst: Int): IntRange = IntRange(newFirst, this.last)
 fun IntRange.updateLast(newLast: Int): IntRange = IntRange(this.first, newLast)
+
+fun IntRange.shift(delta: Int): IntRange = IntRange(first + delta, last + delta)
