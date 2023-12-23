@@ -88,9 +88,21 @@ data class Point2D(val x: Int, val y: Int) {
         return Point2D(x - dir.dx, y - dir.dy)
     }
 
+    operator fun minus(pt: Point2D): Dir2D {
+        return Dir2D(x - pt.x, y - pt.y)
+    }
+
     override fun toString(): String {
         return "($x, $y)"
     }
+
+    val adjacent: List<Point2D>
+        get() = listOf(
+            copy(x = x + 1),
+            copy(y = y + 1),
+            copy(x = x - 1),
+            copy(y = y - 1),
+        )
 }
 
 data class Dir2D(val dx: Int, val dy: Int) {
@@ -252,14 +264,15 @@ data class CycleInfo<T>(
     val prefix: List<T>,
     val cycle: List<T>
 ) {
-    val items: Iterable<T> get() = sequence {
-        for (item in prefix) {
-            yield(item)
-        }
-        for (item in cycle) {
-            yield(item)
-        }
-    }.asIterable()
+    val items: Iterable<T>
+        get() = sequence {
+            for (item in prefix) {
+                yield(item)
+            }
+            for (item in cycle) {
+                yield(item)
+            }
+        }.asIterable()
 
     operator fun get(idx: Int): T = when {
         idx < prefix.size -> prefix[idx]
