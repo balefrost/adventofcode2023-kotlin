@@ -2,6 +2,7 @@ package org.balefrost.aoc2023
 
 import java.util.*
 import kotlin.math.min
+import kotlin.math.sqrt
 
 fun CharSequence.prefixesShortToLong() = sequence {
     for (i in 0..this@prefixesShortToLong.length) {
@@ -135,9 +136,120 @@ data class Dir2D(val dx: Int, val dy: Int) {
     }
 }
 
+data class DPoint2D(val x: Double, val y: Double) {
+    operator fun plus(dir: DDir2D): DPoint2D {
+        return DPoint2D(x + dir.dx, y + dir.dy)
+    }
+
+    operator fun minus(dir: DDir2D): DPoint2D {
+        return DPoint2D(x - dir.dx, y - dir.dy)
+    }
+
+    operator fun minus(pt: DPoint2D): DDir2D {
+        return DDir2D(x - pt.x, y - pt.y)
+    }
+
+    override fun toString(): String {
+        return "($x, $y)"
+    }
+}
+
+data class DPoint3D(val x: Double, val y: Double, val z: Double) {
+    operator fun plus(dir: DDir3D): DPoint3D {
+        return DPoint3D(x + dir.dx, y + dir.dy, z + dir.dz)
+    }
+
+    operator fun minus(dir: DDir3D): DPoint3D {
+        return DPoint3D(x - dir.dx, y - dir.dy, z - dir.dz)
+    }
+
+    operator fun minus(pt: DPoint3D): DDir3D {
+        return DDir3D(x - pt.x, y - pt.y, z - pt.z)
+    }
+
+    override fun toString(): String {
+        return "($x, $y, $z)"
+    }
+
+    val xy: DPoint2D get() = DPoint2D(x, y)
+}
+
+data class DDir2D(val dx: Double, val dy: Double) {
+    operator fun plus(pt: DPoint2D): DPoint2D {
+        return pt + this
+    }
+
+    operator fun unaryMinus(): DDir2D {
+        return DDir2D(-dx, -dy)
+    }
+
+    operator fun times(factor: Double): DDir2D {
+        return DDir2D(dx * factor, dy * factor)
+    }
+
+    val isHorizontal: Boolean get() = dy == 0.0
+
+    val isVertical: Boolean get() = dx == 0.0
+
+    override fun toString(): String {
+        return "<$dx, $dy>"
+    }
+
+    fun magnitude(): Double {
+        return sqrt(dx * dx + dy * dy)
+    }
+}
+
+data class DDir3D(val dx: Double, val dy: Double, val dz: Double) {
+    operator fun plus(pt: DPoint3D): DPoint3D {
+        return pt + this
+    }
+
+    operator fun unaryMinus(): DDir3D {
+        return DDir3D(-dx, -dy, -dz)
+    }
+
+    operator fun times(factor: Double): DDir3D {
+        return DDir3D(dx * factor, dy * factor, dz * factor)
+    }
+
+    val xy: DDir2D get() = DDir2D(dx, dy)
+
+    val isHorizontal: Boolean get() = dy == 0.0
+
+    val isVertical: Boolean get() = dx == 0.0
+
+    override fun toString(): String {
+        return "<$dx, $dy>"
+    }
+}
+
+operator fun Double.times(dir: DDir3D): DDir3D {
+    return dir * this
+}
+
 data class Region2D(val x: Int, val y: Int, val w: Int, val h: Int) {
     operator fun contains(pt: Point2D): Boolean {
         return pt.x >= x && pt.x < x + w && pt.y >= y && pt.y < y + h
+    }
+}
+
+data class DRegion2D(
+    val xRange: ClosedFloatingPointRange<Double>,
+    val yRange: ClosedFloatingPointRange<Double>
+) {
+    operator fun contains(pt: DPoint2D): Boolean {
+        return pt.x in xRange && pt.y in yRange
+    }
+}
+
+data class DRegion3D(
+    val xRange: ClosedFloatingPointRange<Double>,
+    val yRange: ClosedFloatingPointRange<Double>,
+    val zRange: ClosedFloatingPointRange<Double>
+) {
+    operator fun contains(pt: DPoint3D): Boolean {
+        return pt.x in xRange && pt.y in yRange && pt.z in zRange
     }
 }
 
@@ -317,3 +429,53 @@ fun lcm(a: Long, b: Long): Long {
     val ll = gcd(a, b)
     return a / ll * b
 }
+
+fun gaussianElim(rows: List<List<Double>>): List<Double>? {
+    val state = rows.mapTo(mutableListOf()) { it.toMutableList() }
+
+    for (varIdx in state.indices) {
+        if (state[varIdx][varIdx] == 0.0) {
+            var swapped = false
+            for (rowIdx in varIdx + 1 .. rows.lastIndex) {
+                if (state[rowIdx][varIdx] != 0.0) {
+                    val t = state[varIdx]
+                    state[varIdx] = state[rowIdx]
+                    state[rowIdx] = t
+                    swapped = true
+                    break
+                }
+            }
+            if (!swapped) {
+                return null
+            }
+        }
+
+        val f = state[varIdx][varIdx]
+        if (f != 1.0) {
+            for (colIdx in 0 until varIdx) {
+                state[varIdx][colIdx] = 0.0
+            }
+            state[varIdx][varIdx] = 1.0
+            for (colIdx in varIdx + 1 .. state[varIdx].lastIndex) {
+                state[varIdx][colIdx] /= f
+            }
+        }
+
+        for (rowIdx in state.indices) {
+            if (rowIdx == varIdx) {
+                continue
+            }
+            val f2 = state[rowIdx][varIdx]
+            for (colIdx in state[rowIdx].indices) {
+                state[rowIdx][colIdx] -= state[varIdx][colIdx] * f2
+            }
+        }
+    }
+
+    val result = mutableListOf<Double>()
+    for (i in state.indices) {
+        result += (-state[i].last())
+    }
+    return result
+}
+
